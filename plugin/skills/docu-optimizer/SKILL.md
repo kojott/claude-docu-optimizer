@@ -2,7 +2,7 @@
 name: docu-optimizer
 description: Optimize CLAUDE.md and docs/ ecosystem following Boris Cherny's best practices
 argument-hint: [analyze|optimize|apply|compare|create|sync|audit|scaffold]
-allowed-tools: [Read, Glob, Grep, Edit, Write]
+allowed-tools: [Read, Glob, Grep, Edit, Write, Task, Bash]
 license: MIT + Commons Clause
 ---
 
@@ -15,11 +15,17 @@ You are a documentation optimization specialist. Analyze and optimize CLAUDE.md 
 - **Maximum recommended**: 4k tokens
 - **Warning threshold**: 5k+ tokens (causes context rot)
 
-## Analysis Process
+## Execution Strategy
 
-### Step 1: Find Documentation
+**CRITICAL: This skill MUST use parallel subagents for performance.**
 
-Locate and read all documentation sources:
+The analysis runs in 3 phases. Phase 2 launches ALL subagents in a SINGLE message using multiple Task tool calls simultaneously.
+
+---
+
+## Phase 1: Discovery (sequential)
+
+Read and inventory all documentation sources before launching parallel analysis.
 
 **Core files:**
 - `CLAUDE.md` in project root
@@ -45,9 +51,20 @@ For each docs/ file, record:
 - Last modified date (if available via git)
 - Link status (linked from CLAUDE.md or orphaned)
 
-### Step 2: Project Stage Detection
+Save the complete file inventory (paths, sizes, types) - you will pass this context to each subagent.
 
-Automatically detect the project's lifecycle stage:
+---
+
+## Phase 2: Parallel Analysis (5 simultaneous subagents)
+
+**MANDATORY: Launch ALL 5 subagents in a SINGLE message with 5 Task tool calls. Do NOT run them sequentially.**
+
+Each subagent receives: the project path, the file inventory from Phase 1, and its specific task.
+Use `subagent_type: "general-purpose"` for all subagents.
+
+### Subagent A: Project Stage Detection
+
+Prompt the subagent to detect the project's lifecycle stage:
 
 | Stage | Indicators |
 |-------|------------|
@@ -63,95 +80,70 @@ Detection heuristics:
 - Test coverage indicators
 - Presence of CHANGELOG.md
 
-Report the detected stage and adjust recommendations accordingly.
+Return: detected stage + evidence.
 
-### Step 3: Token Analysis
-Estimate tokens (~4 chars = 1 token). Report:
-- Current token count
-- Line count
-- Comparison to 2.5k benchmark
+### Subagent B: Token Analysis + Anti-Pattern Detection
 
-### Step 4: Check for Anti-Patterns
+Prompt the subagent to analyze CLAUDE.md for size and anti-patterns:
 
-#### 1. Context Stuffing
-**Symptom**: Verbose explanations, redundant instructions, "just in case" content
-**Transform**:
-```
-# BAD
-"When implementing authentication, always ensure you follow
-security best practices including input validation, proper
-error handling, secure token storage..."
+**Token Analysis:**
+- Estimate tokens (~4 chars = 1 token)
+- Report current count, line count, comparison to 2.5k benchmark
 
-# GOOD
-"Auth: validate inputs, handle errors securely, follow auth/ patterns"
-```
+**Anti-patterns to check:**
 
-#### 2. Static Memory (No Evolution)
-**Symptom**: No "Learnings" section, no recent updates
-**Fix**: Add learnings section, integrate with PR reviews
-
-#### 3. Missing Plan Mode Guidance
-**Symptom**: No workflow section
-**Fix**: Add planning instructions
-
-#### 4. No Verification Loop
-**Symptom**: No test commands specified
-**Fix**: Add verification requirements (tests, typecheck, etc.)
-
-#### 5. Permissions Not Documented (Teams Only)
-**Symptom**: Team environment with inconsistent permission handling
-**Fix**: Document safe pre-allowed commands via /permissions
-**Note**: Skip this check for private/isolated environments where --dangerously-skip-permissions is acceptable
-
-#### 6. No Format Standards
-**Symptom**: No formatting mentioned, no hooks
-**Fix**: Suggest PostToolUse hooks
-
-#### 7. Stale Documentation
-**Symptom**: docs/ files don't match current codebase
-**Detection**:
-- Compare exported functions/classes in code vs documented API
-- Check if code examples in docs use current API signatures
-- Look for documented features that no longer exist
-**Fix**: Update docs to match code, or flag for manual review
-
-#### 8. Missing Index
-**Symptom**: docs/ folder exists but has no README.md or index
-**Fix**: Create docs/README.md with overview and links to all docs
-
-#### 9. Orphan Docs
-**Symptom**: Files in docs/ that nothing links to
-**Detection**: Scan all markdown files for links, identify unreferenced docs/
-**Fix**: Either link from CLAUDE.md Deep Dive section or remove if obsolete
-
-#### 10. Code-Doc Drift
-**Symptom**: Semantic difference between documented and actual API
-**Detection**:
-- Extract public API from source code (exports, public classes/functions)
-- Parse API documentation in docs/api.md
-- Compare: missing docs, extra docs, signature mismatches
-**Fix**: Generate diff report and recommend updates
-
-### Step 5: Semantic Sync Analysis
-
-Perform deep comparison between code and documentation:
-
-1. **API Extraction**: Scan source files for:
-   - Exported functions and their signatures
-   - Public classes and methods
-   - Type definitions and interfaces
-   - Constants and configuration
-
-2. **Documentation Parsing**: From docs/api.md (or equivalent):
-   - Documented functions/classes
-   - Parameter descriptions
-   - Return type documentation
-   - Code examples
-
-3. **Sync Report**:
+1. **Context Stuffing** - Verbose explanations, redundant instructions, "just in case" content
    ```
-   ## Sync Status
+   # BAD
+   "When implementing authentication, always ensure you follow
+   security best practices including input validation, proper
+   error handling, secure token storage..."
+   # GOOD
+   "Auth: validate inputs, handle errors securely, follow auth/ patterns"
+   ```
 
+2. **Static Memory (No Evolution)** - No "Learnings" section, no recent updates. Fix: Add learnings section.
+
+3. **Missing Plan Mode Guidance** - No workflow section. Fix: Add planning instructions.
+
+4. **No Verification Loop** - No test commands specified. Fix: Add verification requirements.
+
+5. **Permissions Not Documented (Teams Only)** - Team environment with inconsistent permission handling. Fix: Document safe pre-allowed commands. Note: Skip for private/isolated environments.
+
+6. **No Format Standards** - No formatting mentioned, no hooks. Fix: Suggest PostToolUse hooks.
+
+Return: token count, line count, status, list of anti-patterns found with severity and fix.
+
+### Subagent C: Stale Documentation + Code-Doc Drift Detection
+
+Prompt the subagent to check docs/ files against codebase:
+
+7. **Stale Documentation** - docs/ files don't match current codebase
+   - Compare exported functions/classes in code vs documented API
+   - Check if code examples in docs use current API signatures
+   - Look for documented features that no longer exist
+
+8. **Missing Index** - docs/ folder exists but has no README.md or index
+
+9. **Orphan Docs** - Files in docs/ that nothing links to. Scan all markdown files for links, identify unreferenced docs/
+
+10. **Code-Doc Drift** - Semantic difference between documented and actual API
+    - Extract public API from source code (exports, public classes/functions)
+    - Parse API documentation in docs/api.md
+    - Compare: missing docs, extra docs, signature mismatches
+
+Return: list of issues found with location, severity, and specific fix.
+
+### Subagent D: Semantic Sync Analysis
+
+Prompt the subagent to perform deep comparison between code and documentation:
+
+1. **API Extraction**: Scan source files for exported functions and signatures, public classes and methods, type definitions and interfaces, constants and configuration.
+
+2. **Documentation Parsing**: From docs/api.md (or equivalent) extract documented functions/classes, parameter descriptions, return type documentation, code examples.
+
+3. **Sync Report** in this format:
+   ```
    | Item | Code | Docs | Status |
    |------|------|------|--------|
    | createUser() | ✓ | ✓ | SYNCED |
@@ -160,9 +152,11 @@ Perform deep comparison between code and documentation:
    | updateUser(id, data) | (id, data, opts) | (id, data) | DRIFT |
    ```
 
-### Step 6: Documentation Ecosystem Analysis
+Return: complete sync report table + summary counts.
 
-Map relationships between documentation files:
+### Subagent E: Documentation Ecosystem Analysis
+
+Prompt the subagent to map relationships between documentation files:
 
 1. **Link Graph**: Which docs link to which
 2. **CLAUDE.md Coverage**: What's linked in Deep Dive section
@@ -174,7 +168,15 @@ Recommend Deep Dive links for CLAUDE.md based on:
 - Token size (larger docs should be on-demand, not inlined)
 - Update frequency (stable docs are better candidates)
 
-### Step 7: Generate Optimized Structure
+Return: docs overview table, link graph, orphan list, Deep Dive recommendations.
+
+---
+
+## Phase 3: Synthesis (sequential)
+
+Collect ALL subagent results and compose the final report. Generate the optimized structure:
+
+### Generate Optimized Structure
 
 ```markdown
 # Project Name
@@ -334,6 +336,13 @@ Before flagging issues, consider the environment:
 Ask about environment if unclear before making recommendations.
 
 ---
+
+## Execution Rules
+
+1. **ALWAYS use parallel subagents** - Phase 2 MUST launch all 5 subagents in a single message with 5 simultaneous Task tool calls. Never run them sequentially.
+2. **Pass context to subagents** - Each subagent needs the project path and file inventory from Phase 1. Include the full list of discovered files in each subagent prompt.
+3. **Subagents are research-only** - Subagents read and analyze. Only the main agent writes/edits files (in Phase 3, apply mode only).
+4. **Adapt to project size** - For small projects (< 5 docs files), you may combine Subagents C+D into one. For projects with no docs/ folder, skip Subagents C, D, E and only run A + B.
 
 **Begin analysis now.** If no CLAUDE.md exists, offer to create an optimal one based on project structure. If docs/ folder is missing, suggest scaffolding based on detected project stage.
 
