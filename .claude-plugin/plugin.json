@@ -1,0 +1,8 @@
+{
+  "name": "docu-optimizer",
+  "description": "Optimize CLAUDE.md and docs/ ecosystem following battle-tested patterns from Boris Cherny's team at Anthropic",
+  "author": {
+    "name": "",
+    "email": ""
+  }
+}
