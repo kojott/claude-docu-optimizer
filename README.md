@@ -28,26 +28,19 @@ Analyzes and optimizes your project documentation to keep Claude Code's context 
 
 ## Installation
 
-Clone this repository into your Claude Code plugins directory:
+Add the marketplace and install the plugin:
 
 ```bash
-cd ~/.claude/plugins
-git clone https://github.com/kojott/claude-docu-optimizer.git
+claude plugin marketplace add https://github.com/kojott/claude-docu-optimizer
+claude plugin install docu-optimizer@claude-docu-optimizer
 ```
 
-Then enable it in your `~/.claude/settings.json`:
+### Updating
 
-```json
-{
-  "plugins": {
-    "claude-docu-optimizer": {
-      "enabled": true
-    }
-  }
-}
+```bash
+claude plugin marketplace update claude-docu-optimizer
+claude plugin update docu-optimizer@claude-docu-optimizer
 ```
-
-Restart Claude Code to load the plugin.
 
 ## Usage
 

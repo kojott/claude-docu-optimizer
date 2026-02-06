@@ -1,0 +1,17 @@
+{
+  "name": "docu-optimizer",
+  "version": "1.0.0",
+  "description": "Optimize CLAUDE.md and docs/ ecosystem following Boris Cherny's best practices",
+  "author": {
+    "name": "kojott"
+  },
+  "repository": "https://github.com/kojott/claude-docu-optimizer",
+  "license": "MIT + Commons Clause",
+  "keywords": [
+    "documentation",
+    "claude-md",
+    "optimization",
+    "docs-ecosystem",
+    "anti-patterns"
+  ]
+}
