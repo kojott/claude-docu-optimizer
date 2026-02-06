@@ -1,6 +1,6 @@
 {
   "name": "docu-optimizer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Optimize CLAUDE.md and docs/ ecosystem following Boris Cherny's best practices",
   "author": {
     "name": "kojott"
