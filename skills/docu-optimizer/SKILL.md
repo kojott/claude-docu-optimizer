@@ -3,7 +3,7 @@ name: docu-optimizer
 description: Optimize CLAUDE.md and docs/ ecosystem following Boris Cherny's best practices
 argument-hint: [analyze|optimize|apply|compare|create|sync|audit|scaffold]
 allowed-tools: [Read, Glob, Grep, Edit, Write]
-license: MIT
+license: MIT + Commons Clause
 ---
 
 # Documentation & CLAUDE.md Optimizer
