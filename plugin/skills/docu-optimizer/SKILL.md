@@ -55,6 +55,14 @@ Map the full `.claude/` ecosystem:
 
 Record what exists and what's missing for recommendations in Phase 3.
 
+**Memory system scan:**
+Check Claude Code's auto-memory directory (persists across conversations):
+- `~/.claude/projects/<project-hash>/memory/` — project-specific memory directory
+- `MEMORY.md` inside it — always loaded into context; lines beyond 200 are truncated
+- Topic-specific memory files linked from MEMORY.md (e.g., `debugging.md`, `patterns.md`)
+
+Record: whether memory dir exists, MEMORY.md line count (flag if >180 lines), topic file count.
+
 **Documentation ecosystem (docs/):**
 Scan and map the `docs/` folder structure:
 ```
@@ -126,7 +134,7 @@ Prompt the subagent to analyze CLAUDE.md for size and anti-patterns:
    "Auth: validate inputs, handle errors securely, follow auth/ patterns"
    ```
 
-2. **Static Memory (No Evolution)** - No "Learnings" section, no recent updates. Fix: Add learnings section.
+2. **Static Learnings (No Evolution)** - No "Learnings" section in CLAUDE.md, no recent updates. Fix: Add learnings section with dated entries.
 
 3. **Missing Plan Mode Guidance** - No workflow section. Fix: Add planning instructions.
 
@@ -184,6 +192,16 @@ Prompt the subagent to analyze CLAUDE.md for size and anti-patterns:
     Detection: Identify rules about security, destructive operations, or breaking changes that lack "IMPORTANT", "CRITICAL", "YOU MUST", or bold/caps formatting.
     Fix: Add emphasis to top 3-5 most critical rules only.
     Warning: Over-emphasizing everything dilutes the effect.
+
+16. **Bloated or Missing MEMORY.md** — The auto-memory file `~/.claude/projects/<hash>/memory/MEMORY.md` is always loaded into context, but lines beyond 200 are silently truncated.
+    Detection:
+    - MEMORY.md absent: project has substantial history but no memory file → Claude can't carry knowledge across sessions
+    - MEMORY.md too long: >180 lines risks important entries being cut off
+    - All knowledge in one file: no topic files linked from MEMORY.md
+    Fix:
+    - If absent: create `memory/MEMORY.md` with key architecture decisions and preferences
+    - If >180 lines: split into topic files (e.g., `debugging.md`, `patterns.md`) and link them from MEMORY.md
+    - Keep MEMORY.md under 150 lines to leave room for growth
 
 Return: token count, line count, status, instruction count, verification score (0-5), list of anti-patterns found with severity and fix.
 
@@ -250,6 +268,7 @@ Using the ecosystem inventory from Phase 1, evaluate completeness:
 - `.claude/agents/` → If complex multi-step workflows exist, recommend custom agents
 - PostToolUse hook for Write|Edit → Recommend auto-format hook if missing
 - Permission wildcards in settings.json → Recommend for frequent safe commands
+- `~/.claude/projects/*/memory/MEMORY.md` → Check if exists; flag if >180 lines (truncated at 200); recommend topic files if MEMORY.md is approaching the limit
 
 Recommendations based on detected project stage:
 - INIT: settings.json with basic hooks is sufficient
@@ -322,7 +341,7 @@ When generating the optimized version, strip the `← STATIC/DYNAMIC` comments �
 - Status: [OPTIMAL | NEEDS OPTIMIZATION | BLOATED]
 - Project Stage: [INIT | ACTIVE | STABLE | MAINTENANCE]
 - CLAUDE.md hierarchy: [files found at each level]
-- Ecosystem: [settings.json ✓/✗] [commands/ ✓/✗] [skills/ ✓/✗] [agents/ ✓/✗] [rules/ ✓/✗]
+- Ecosystem: [settings.json ✓/✗] [commands/ ✓/✗] [skills/ ✓/✗] [agents/ ✓/✗] [rules/ ✓/✗] [memory/ ✓/✗]
 
 ### Docs/ Overview
 
@@ -473,7 +492,7 @@ Ask about environment if unclear before making recommendations.
 2. **Pass context to subagents** - Each subagent needs the project path, file inventory from Phase 1 (including CLAUDE.md hierarchy and .claude/ ecosystem inventory). Include the full list of discovered files in each subagent prompt.
 3. **Subagents are research-only** - Subagents read and analyze. Only the main agent writes/edits files (in Phase 3, apply mode only).
 4. **Adapt to project size** - For small projects (< 5 docs files), you may combine Subagents C+D into one. For projects with no docs/ folder, skip Subagents C, D, E and only run A + B.
-5. **All 15 anti-patterns must be checked** - Subagent B checks anti-patterns 1-6, 11-15. Subagent C checks anti-patterns 7-10. Ensure no anti-pattern is skipped.
+5. **All 16 anti-patterns must be checked** - Subagent B checks anti-patterns 1-6, 11-16. Subagent C checks anti-patterns 7-10. Ensure no anti-pattern is skipped.
 
 **Begin analysis now.** If no CLAUDE.md exists, offer to create an optimal one based on project structure. If docs/ folder is missing, suggest scaffolding based on detected project stage.
 
