@@ -1,7 +1,8 @@
 {
   "name": "claude-docu-optimizer",
   "owner": {
-    "name": "kojott"
+    "name": "Jiri George Dolejs",
+    "url": "https://jiridolejs.cz"
   },
   "metadata": {
     "description": "Documentation optimization plugin for Claude Code",
